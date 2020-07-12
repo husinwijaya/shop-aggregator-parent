@@ -1,0 +1,1 @@
+web: java -jar backend/target/backend-1.0-SNAPSHOT-runner.jar & java -jar frontend/target/frontend.jar --server.port=$PORT & wait -n
