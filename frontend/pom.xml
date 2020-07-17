@@ -120,7 +120,6 @@
   </dependencies>
 
   <build>
-    <finalName>frontend</finalName>
     <defaultGoal>spring-boot:run</defaultGoal>
     <plugins>
       <plugin>
