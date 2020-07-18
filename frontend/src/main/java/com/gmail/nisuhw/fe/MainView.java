@@ -5,6 +5,7 @@ import com.google.common.collect.Sets;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dependency.CssImport;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.Route;
 import org.slf4j.Logger;
@@ -69,7 +70,13 @@ public class MainView extends VerticalLayout {
                         stores = Sets.intersection(stores, storeIterator.next());
                     }
                 }
-                if (stores == null) return;
+                if (stores == null) {
+                    ui.access(() -> {
+                        Notification.show("No result found");
+                        ui.push();
+                    });
+                    return;
+                }
                 stores.parallelStream().forEach(store -> {
                     var storeView = new StoreView(store.getId(), store.getName(), store.getUrl(), ui, backendService);
                     ui.access(() -> {
