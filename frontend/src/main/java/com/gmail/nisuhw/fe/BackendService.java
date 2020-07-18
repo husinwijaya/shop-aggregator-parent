@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gmail.nisuhw.model.ProductResult;
 import com.gmail.nisuhw.model.ShopResult;
 import com.google.common.net.UrlEscapers;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +37,7 @@ public class BackendService {
     }
 
     public Set<String> getSuggestion(String term) {
+        if (StringUtils.isBlank(term)) return emptySet();
         String body = get("/tokopedia/suggest/" + term);
         try {
             return objectMapper.readValue(body, objectMapper.getTypeFactory().constructCollectionType(HashSet.class, String.class));
@@ -46,6 +48,7 @@ public class BackendService {
     }
 
     public Set<ShopResult> search(String term) {
+        if (StringUtils.isBlank(term)) return emptySet();
         String body = get("/tokopedia/search/" + term);
         try {
             return objectMapper.readValue(body, objectMapper.getTypeFactory().constructCollectionType(HashSet.class, ShopResult.class));
@@ -68,7 +71,7 @@ public class BackendService {
     private String get(String path) {
         path = UrlEscapers.urlFragmentEscaper().escape(path);
         log.info("get path: {}", path);
-        HttpResponse<String> response = httpClient.sendAsync(initRequest(path).build(), BodyHandlers.ofString()).completeOnTimeout(null, 5, TimeUnit.SECONDS).join();
+        HttpResponse<String> response = httpClient.sendAsync(initRequest(path).build(), BodyHandlers.ofString()).completeOnTimeout(null, 15, TimeUnit.SECONDS).join();
         if (response == null) return "";
         String body = response.body();
         if (body.isEmpty()) return "";

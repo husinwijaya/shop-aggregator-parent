@@ -11,6 +11,7 @@ import com.vaadin.flow.router.Route;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 import org.vaadin.gatanaso.MultiselectComboBox;
 
 import java.util.Iterator;
@@ -19,7 +20,9 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import static com.vaadin.flow.component.notification.Notification.Position.MIDDLE;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toUnmodifiableList;
 
 /**
  * A sample Vaadin view class.
@@ -61,31 +64,26 @@ public class MainView extends VerticalLayout {
             UI ui = event.getSource().getUI().orElse(UI.getCurrent());
             Set<String> terms = search.getValue();
             clearSearch();
-            executor.submit(() -> {
-                Iterator<Set<ShopResult>> storeIterator = terms.parallelStream().map(backendService::search).collect(toList()).iterator();
-                Set<ShopResult> stores = null;
-                while (storeIterator.hasNext()) {
-                    if (stores == null) stores = storeIterator.next();
-                    else {
-                        stores = Sets.intersection(stores, storeIterator.next());
-                    }
+            log.info("prepare search {}", terms);
+            Iterator<Set<ShopResult>> storeIterator = terms.parallelStream().map(backendService::search).collect(toList()).iterator();
+            log.info("got result from backend");
+            Set<ShopResult> stores = null;
+            while (storeIterator.hasNext()) {
+                if (stores == null) stores = storeIterator.next();
+                else {
+                    stores = Sets.intersection(stores, storeIterator.next());
                 }
-                if (stores == null) {
-                    ui.access(() -> {
-                        Notification.show("No result found");
-                        ui.push();
-                    });
-                    return;
-                }
-                stores.parallelStream().forEach(store -> {
-                    var storeView = new StoreView(store.getId(), store.getName(), store.getUrl(), ui, backendService);
-                    ui.access(() -> {
-                        add(storeView);
-                        ui.push();
-                    });
-                    storeView.display(terms);
-                });
-            });
+            }
+            if (CollectionUtils.isEmpty(stores)) {
+                log.warn("not found {}", terms);
+                Notification.show("No result found", 3000, MIDDLE);
+                return;
+            }
+            log.info("rendering the result");
+            stores.parallelStream().limit(10)
+                    .map(store -> new StoreView(store.getId(), store.getName(), store.getUrl(), terms, backendService))
+                    .collect(toUnmodifiableList())
+                    .forEach(this::add);
         });
 
         addClassName("centered-content");
